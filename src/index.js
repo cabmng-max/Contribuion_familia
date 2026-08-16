@@ -325,6 +325,35 @@ export default {
   async fetch(request, env) {
 
     const url = new URL(request.url);
+        if (
+      request.method === "GET" &&
+      url.pathname === "/admin/diagnostic-secret"
+    ) {
+      const secret = String(env.MNG_ADMIN_KEY || "");
+
+      const data = new TextEncoder().encode(secret);
+      const digest = await crypto.subtle.digest("SHA-256", data);
+
+      const hash = Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      return new Response(
+        JSON.stringify(
+          {
+            length: secret.length,
+            sha256: hash
+          },
+          null,
+          2
+        ),
+        {
+          headers: {
+            "content-type": "application/json; charset=UTF-8"
+          }
+        }
+      );
+    }
     // --------------------------------------------------
     // CRÉATION AUTOMATIQUE D'UNE INVITATION
     // --------------------------------------------------
