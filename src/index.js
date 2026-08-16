@@ -1,18 +1,79 @@
-function pageForm() {
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+function pageMessage(title, message) {
   return `<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Contribution familiale</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escapeHtml(title)}</title>
   <style>
-    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f3f6fa;
+      font-family: system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+      color: #172033;
+      padding: 20px;
+    }
+
+    .card {
+      max-width: 600px;
+      margin: 60px auto;
+      background: white;
+      border-radius: 18px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      color: #245f9e;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>${escapeHtml(title)}</h1>
+    <p>${escapeHtml(message)}</p>
+  </div>
+</body>
+</html>`;
+}
+
+
+function pageForm(token) {
+  const safeToken = escapeHtml(token);
+
+  return `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+  >
+
+  <title>Contribution familiale</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
       background: #f3f6fa;
       color: #172033;
-      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      font-family: system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
     }
 
     .wrap {
@@ -22,7 +83,7 @@ function pageForm() {
     }
 
     .hero {
-      background: linear-gradient(135deg, #183e66, #2b6da9);
+      background: linear-gradient(135deg,#183e66,#2b6da9);
       color: white;
       border-radius: 18px;
       padding: 20px;
@@ -64,7 +125,8 @@ function pageForm() {
       margin-bottom: 5px;
     }
 
-    input, textarea {
+    input,
+    textarea {
       width: 100%;
       min-height: 46px;
       border: 1px solid #cbd6e3;
@@ -120,13 +182,16 @@ function pageForm() {
 </head>
 
 <body>
+
   <div class="wrap">
 
     <div class="hero">
       <h1>👪 Contribution familiale</h1>
+
       <p>
         Merci de renseigner les informations que vous connaissez.
-        Elles seront contrôlées avant leur intégration dans l'arbre familial.
+        Elles seront contrôlées avant leur intégration
+        dans l'arbre familial.
       </p>
     </div>
 
@@ -134,21 +199,38 @@ function pageForm() {
 
       <form method="post" action="/contribuer">
 
+        <input
+          type="hidden"
+          name="token"
+          value="${safeToken}"
+        >
+
         <div class="grid">
 
           <div>
             <label>Prénom *</label>
-            <input name="prenom" required autocomplete="given-name">
+            <input
+              name="prenom"
+              required
+              autocomplete="given-name"
+            >
           </div>
 
           <div>
             <label>Nom *</label>
-            <input name="nom" required autocomplete="family-name">
+            <input
+              name="nom"
+              required
+              autocomplete="family-name"
+            >
           </div>
 
           <div>
             <label>Date de naissance</label>
-            <input type="date" name="date_naissance">
+            <input
+              type="date"
+              name="date_naissance"
+            >
           </div>
 
           <div>
@@ -158,16 +240,25 @@ function pageForm() {
 
           <div>
             <label>Téléphone</label>
-            <input type="tel" name="telephone" autocomplete="tel">
+            <input
+              type="tel"
+              name="telephone"
+              autocomplete="tel"
+            >
           </div>
 
           <div>
             <label>E-mail</label>
-            <input type="email" name="email" autocomplete="email">
+            <input
+              type="email"
+              name="email"
+              autocomplete="email"
+            >
           </div>
 
           <div class="full">
             <label>Informations complémentaires</label>
+
             <textarea
               name="commentaire"
               placeholder="Profession, conjoint, enfants, ville, informations familiales..."
@@ -183,60 +274,40 @@ function pageForm() {
       </form>
 
       <div class="note">
-        Les informations envoyées sont placées en attente de vérification.
-        Elles ne sont pas ajoutées automatiquement à l'arbre familial.
+        Les informations envoyées sont placées en attente
+        de vérification. Elles ne sont pas ajoutées
+        automatiquement à l'arbre familial.
       </div>
 
     </div>
-
   </div>
+
 </body>
 </html>`;
 }
 
 
-function pageMerci() {
-  return `<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Contribution envoyée</title>
-  <style>
-    body {
-      margin: 0;
-      background: #f3f6fa;
-      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-      color: #172033;
-      padding: 20px;
-    }
+async function invitationValide(env, token) {
+  if (!token) {
+    return false;
+  }
 
-    .card {
-      max-width: 600px;
-      margin: 60px auto;
-      background: white;
-      border-radius: 18px;
-      padding: 30px;
-      text-align: center;
-      box-shadow: 0 8px 30px rgba(0,0,0,.08);
-    }
+  const result = await env.DB
+    .prepare(`
+      SELECT id
+      FROM invitations
+      WHERE token = ?
+        AND status = 'active'
+        AND (
+          expires_at IS NULL
+          OR datetime(expires_at) > datetime('now')
+        )
+      LIMIT 1
+    `)
+    .bind(token)
+    .first();
 
-    h1 {
-      color: #177245;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="card">
-    <h1>✅ Merci</h1>
-    <p>Votre contribution a bien été transmise.</p>
-    <p>
-      Elle sera contrôlée avant son intégration dans l'arbre familial.
-    </p>
-  </div>
-</body>
-</html>`;
+  return Boolean(result);
 }
 
 
@@ -246,47 +317,180 @@ export default {
 
     const url = new URL(request.url);
 
+
+    // --------------------------------------------------
+    // AFFICHAGE DU FORMULAIRE
+    // --------------------------------------------------
+
     if (request.method === "GET" && url.pathname === "/") {
-      return new Response(pageForm(), {
-        headers: {
-          "content-type": "text/html; charset=UTF-8"
-        }
-      });
-    }
+
+      const token =
+        String(url.searchParams.get("token") || "").trim();
 
 
-    if (request.method === "POST" && url.pathname === "/contribuer") {
+      if (!token) {
+
+        return new Response(
+          pageMessage(
+            "🔒 Invitation requise",
+            "Vous devez utiliser le lien d'invitation qui vous a été transmis."
+          ),
+          {
+            status: 403,
+            headers: {
+              "content-type": "text/html; charset=UTF-8"
+            }
+          }
+        );
+
+      }
+
 
       try {
 
-        const form = await request.formData();
+        const valide =
+          await invitationValide(env, token);
 
-        const prenom = String(form.get("prenom") || "").trim();
-        const nom = String(form.get("nom") || "").trim();
+
+        if (!valide) {
+
+          return new Response(
+            pageMessage(
+              "⚠️ Invitation invalide",
+              "Cette invitation est inconnue, expirée ou désactivée."
+            ),
+            {
+              status: 403,
+              headers: {
+                "content-type": "text/html; charset=UTF-8"
+              }
+            }
+          );
+
+        }
+
+
+        return new Response(
+          pageForm(token),
+          {
+            headers: {
+              "content-type": "text/html; charset=UTF-8"
+            }
+          }
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          "Erreur contrôle invitation",
+          error
+        );
+
+        return new Response(
+          pageMessage(
+            "Erreur",
+            "Impossible de vérifier l'invitation."
+          ),
+          {
+            status: 500,
+            headers: {
+              "content-type": "text/html; charset=UTF-8"
+            }
+          }
+        );
+
+      }
+
+    }
+
+
+    // --------------------------------------------------
+    // RÉCEPTION DE LA CONTRIBUTION
+    // --------------------------------------------------
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/contribuer"
+    ) {
+
+      try {
+
+        const form =
+          await request.formData();
+
+
+        const token =
+          String(form.get("token") || "").trim();
+
+        const prenom =
+          String(form.get("prenom") || "").trim();
+
+        const nom =
+          String(form.get("nom") || "").trim();
+
         const dateNaissance =
-          String(form.get("date_naissance") || "").trim();
+          String(
+            form.get("date_naissance") || ""
+          ).trim();
 
         const lieuNaissance =
-          String(form.get("lieu_naissance") || "").trim();
+          String(
+            form.get("lieu_naissance") || ""
+          ).trim();
 
         const telephone =
-          String(form.get("telephone") || "").trim();
+          String(
+            form.get("telephone") || ""
+          ).trim();
 
         const email =
-          String(form.get("email") || "").trim();
+          String(
+            form.get("email") || ""
+          ).trim();
 
         const commentaire =
-          String(form.get("commentaire") || "").trim();
+          String(
+            form.get("commentaire") || ""
+          ).trim();
+
+
+        // Vérification du token une deuxième fois
+        // au moment de l'envoi.
+
+        const valide =
+          await invitationValide(env, token);
+
+
+        if (!valide) {
+
+          return new Response(
+            pageMessage(
+              "⚠️ Invitation invalide",
+              "Cette invitation n'est plus valable."
+            ),
+            {
+              status: 403,
+              headers: {
+                "content-type": "text/html; charset=UTF-8"
+              }
+            }
+          );
+
+        }
 
 
         if (!prenom || !nom) {
 
           return new Response(
-            "Le prénom et le nom sont obligatoires.",
+            pageMessage(
+              "Informations manquantes",
+              "Le prénom et le nom sont obligatoires."
+            ),
             {
               status: 400,
               headers: {
-                "content-type": "text/plain; charset=UTF-8"
+                "content-type": "text/html; charset=UTF-8"
               }
             }
           );
@@ -310,7 +514,7 @@ export default {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           `)
           .bind(
-            "TEST-PUBLIC",
+            token,
             nom,
             prenom,
             dateNaissance,
@@ -323,22 +527,35 @@ export default {
           .run();
 
 
-        return new Response(pageMerci(), {
-          headers: {
-            "content-type": "text/html; charset=UTF-8"
+        return new Response(
+          pageMessage(
+            "✅ Merci",
+            "Votre contribution a bien été transmise. Elle sera contrôlée avant son intégration dans l'arbre familial."
+          ),
+          {
+            headers: {
+              "content-type": "text/html; charset=UTF-8"
+            }
           }
-        });
+        );
+
 
       } catch (error) {
 
-        console.error("Erreur contribution", error);
+        console.error(
+          "Erreur contribution",
+          error
+        );
 
         return new Response(
-          "Une erreur est survenue lors de l'enregistrement.",
+          pageMessage(
+            "Erreur",
+            "Une erreur est survenue lors de l'enregistrement."
+          ),
           {
             status: 500,
             headers: {
-              "content-type": "text/plain; charset=UTF-8"
+              "content-type": "text/html; charset=UTF-8"
             }
           }
         );
@@ -348,12 +565,15 @@ export default {
     }
 
 
-    return new Response("Page introuvable", {
-      status: 404,
-      headers: {
-        "content-type": "text/plain; charset=UTF-8"
+    return new Response(
+      "Page introuvable",
+      {
+        status: 404,
+        headers: {
+          "content-type": "text/plain; charset=UTF-8"
+        }
       }
-    });
+    );
 
   }
 
