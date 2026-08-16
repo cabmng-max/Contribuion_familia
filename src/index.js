@@ -325,7 +325,115 @@ export default {
   async fetch(request, env) {
 
     const url = new URL(request.url);
+    // --------------------------------------------------
+    // CRÉATION AUTOMATIQUE D'UNE INVITATION
+    // --------------------------------------------------
 
+    if (
+      request.method === "POST" &&
+      url.pathname === "/admin/invitations"
+    ) {
+
+      const adminKey =
+        String(
+          request.headers.get("X-MNG-Admin-Key") || ""
+        );
+
+      if (
+        !env.MNG_ADMIN_KEY ||
+        adminKey !== env.MNG_ADMIN_KEY
+      ) {
+
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: "Accès administrateur refusé"
+          }),
+          {
+            status: 403,
+            headers: {
+              "content-type":
+                "application/json; charset=UTF-8"
+            }
+          }
+        );
+
+      }
+
+
+      try {
+
+        const token =
+          genererTokenInvitation();
+
+
+        await env.DB
+          .prepare(`
+            INSERT INTO invitations (
+              token,
+              expires_at,
+              status
+            )
+            VALUES (
+              ?,
+              datetime('now', '+7 days'),
+              'active'
+            )
+          `)
+          .bind(token)
+          .run();
+
+
+        const inviteUrl =
+          `${url.origin}/?token=${encodeURIComponent(token)}`;
+
+
+        return new Response(
+          JSON.stringify(
+            {
+              ok: true,
+              token: token,
+              expires_in_days: 7,
+              invite_url: inviteUrl
+            },
+            null,
+            2
+          ),
+          {
+            status: 201,
+            headers: {
+              "content-type":
+                "application/json; charset=UTF-8"
+            }
+          }
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          "Erreur création invitation",
+          error
+        );
+
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error:
+              "Impossible de créer l'invitation"
+          }),
+          {
+            status: 500,
+            headers: {
+              "content-type":
+                "application/json; charset=UTF-8"
+            }
+          }
+        );
+
+      }
+
+    }
     // --------------------------------------------------
     // AFFICHAGE DU FORMULAIRE
     // --------------------------------------------------
