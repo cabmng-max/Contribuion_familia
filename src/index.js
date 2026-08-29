@@ -1,13 +1,11 @@
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+
+// src/index.js
 function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
-
-
+__name(escapeHtml, "escapeHtml");
 function pageMessage(title, message) {
   return `<!doctype html>
 <html lang="fr">
@@ -47,11 +45,9 @@ function pageMessage(title, message) {
 </body>
 </html>`;
 }
-
-
+__name(pageMessage, "pageMessage");
 function pageForm(token) {
   const safeToken = escapeHtml(token);
-
   return `<!doctype html>
 <html lang="fr">
 <head>
@@ -186,11 +182,11 @@ function pageForm(token) {
   <div class="wrap">
 
     <div class="hero">
-      <h1>👪 Contribution familiale</h1>
+      <h1>\u{1F46A} Contribution familiale</h1>
 
       <p>
         Merci de renseigner les informations que vous connaissez.
-        Elles seront contrôlées avant leur intégration
+        Elles seront contr\xF4l\xE9es avant leur int\xE9gration
         dans l'arbre familial.
       </p>
     </div>
@@ -208,7 +204,7 @@ function pageForm(token) {
         <div class="grid">
 
           <div>
-            <label>Prénom *</label>
+            <label>Pr\xE9nom *</label>
             <input
               name="prenom"
               required
@@ -239,7 +235,7 @@ function pageForm(token) {
           </div>
 
           <div>
-            <label>Téléphone</label>
+            <label>T\xE9l\xE9phone</label>
             <input
               type="tel"
               name="telephone"
@@ -257,7 +253,7 @@ function pageForm(token) {
           </div>
 
           <div class="full">
-            <label>Informations complémentaires</label>
+            <label>Informations compl\xE9mentaires</label>
 
             <textarea
               name="commentaire"
@@ -268,15 +264,15 @@ function pageForm(token) {
         </div>
 
         <button type="submit">
-          📨 Envoyer ma contribution
+          \u{1F4E8} Envoyer ma contribution
         </button>
 
       </form>
 
       <div class="note">
-        Les informations envoyées sont placées en attente
-        de vérification. Elles ne sont pas ajoutées
-        automatiquement à l'arbre familial.
+        Les informations envoy\xE9es sont plac\xE9es en attente
+        de v\xE9rification. Elles ne sont pas ajout\xE9es
+        automatiquement \xE0 l'arbre familial.
       </div>
 
     </div>
@@ -285,15 +281,12 @@ function pageForm(token) {
 </body>
 </html>`;
 }
-
-
+__name(pageForm, "pageForm");
 async function invitationValide(env, token) {
   if (!token) {
     return false;
   }
-
-  const result = await env.DB
-    .prepare(`
+  const result = await env.DB.prepare(`
       SELECT id
       FROM invitations
       WHERE token = ?
@@ -303,73 +296,67 @@ async function invitationValide(env, token) {
           OR datetime(expires_at) > datetime('now')
         )
       LIMIT 1
-    `)
-    .bind(token)
-    .first();
-
+    `).bind(token).first();
   return Boolean(result);
 }
-
+__name(invitationValide, "invitationValide");
 function genererTokenInvitation() {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
-
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-
-
-export default {
-
+__name(genererTokenInvitation, "genererTokenInvitation");
+var index_default = {
   async fetch(request, env) {
-
     const url = new URL(request.url);
 
-    // --------------------------------------------------
-    // CRÉATION AUTOMATIQUE D'UNE INVITATION
-    // --------------------------------------------------
+    // Diagnostic temporaire : ne révèle jamais la valeur du secret.
+    if (url.pathname === "/admin/key-diagnostic") {
+      const received = String(
+        request.headers.get("X-MNG-Admin-Key") || ""
+      );
+      const stored = String(env.MNG_ADMIN_KEY || "");
 
-    if (
-      request.method === "POST" &&
-      url.pathname === "/admin/invitations"
-    ) {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          secret_present: stored.length > 0,
+          secret_length: stored.length,
+          header_present: received.length > 0,
+          header_length: received.length,
+          keys_equal: received === stored
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json; charset=UTF-8"
+          }
+        }
+      );
+    }
 
-      const adminKey =
-        String(
-          request.headers.get("X-MNG-Admin-Key") || ""
-        );
-
-      if (
-        !env.MNG_ADMIN_KEY ||
-        adminKey !== env.MNG_ADMIN_KEY
-      ) {
-
+    if (request.method === "POST" && url.pathname === "/admin/invitations") {
+      const adminKey = String(
+        request.headers.get("X-MNG-Admin-Key") || ""
+      );
+     
+      if (!env.MNG_ADMIN_KEY || adminKey !== env.MNG_ADMIN_KEY) {
         return new Response(
           JSON.stringify({
             ok: false,
-            error: "Accès administrateur refusé"
+            error: "Acc\xE8s administrateur refus\xE9"
           }),
           {
             status: 403,
             headers: {
-              "content-type":
-                "application/json; charset=UTF-8"
+              "content-type": "application/json; charset=UTF-8"
             }
           }
         );
-
       }
-
-
       try {
-
-        const token =
-          genererTokenInvitation();
-
-
-        await env.DB
-          .prepare(`
+        const token = genererTokenInvitation();
+        await env.DB.prepare(`
             INSERT INTO invitations (
               token,
               expires_at,
@@ -380,20 +367,13 @@ export default {
               datetime('now', '+7 days'),
               'active'
             )
-          `)
-          .bind(token)
-          .run();
-
-
-        const inviteUrl =
-          `${url.origin}/?token=${encodeURIComponent(token)}`;
-
-
+          `).bind(token).run();
+        const inviteUrl = `${url.origin}/?token=${encodeURIComponent(token)}`;
         return new Response(
           JSON.stringify(
             {
               ok: true,
-              token: token,
+              token,
               expires_in_days: 7,
               invite_url: inviteUrl
             },
@@ -403,54 +383,36 @@ export default {
           {
             status: 201,
             headers: {
-              "content-type":
-                "application/json; charset=UTF-8"
+              "content-type": "application/json; charset=UTF-8"
             }
           }
         );
-
-
       } catch (error) {
-
         console.error(
-          "Erreur création invitation",
+          "Erreur cr\xE9ation invitation",
           error
         );
-
         return new Response(
           JSON.stringify({
             ok: false,
-            error:
-              "Impossible de créer l'invitation"
+            error: "Impossible de cr\xE9er l'invitation"
           }),
           {
             status: 500,
             headers: {
-              "content-type":
-                "application/json; charset=UTF-8"
+              "content-type": "application/json; charset=UTF-8"
             }
           }
         );
-
       }
-
     }
-    // --------------------------------------------------
-    // AFFICHAGE DU FORMULAIRE
-    // --------------------------------------------------
-
     if (request.method === "GET" && url.pathname === "/") {
-
-      const token =
-        String(url.searchParams.get("token") || "").trim();
-
-
+      const token = String(url.searchParams.get("token") || "").trim();
       if (!token) {
-
         return new Response(
           pageMessage(
-            "🔒 Invitation requise",
-            "Vous devez utiliser le lien d'invitation qui vous a été transmis."
+            "\u{1F512} Invitation requise",
+            "Vous devez utiliser le lien d'invitation qui vous a \xE9t\xE9 transmis."
           ),
           {
             status: 403,
@@ -459,22 +421,14 @@ export default {
             }
           }
         );
-
       }
-
-
       try {
-
-        const valide =
-          await invitationValide(env, token);
-
-
+        const valide = await invitationValide(env, token);
         if (!valide) {
-
           return new Response(
             pageMessage(
-              "⚠️ Invitation invalide",
-              "Cette invitation est inconnue, expirée ou désactivée."
+              "\u26A0\uFE0F Invitation invalide",
+              "Cette invitation est inconnue, expir\xE9e ou d\xE9sactiv\xE9e."
             ),
             {
               status: 403,
@@ -483,10 +437,7 @@ export default {
               }
             }
           );
-
         }
-
-
         return new Response(
           pageForm(token),
           {
@@ -495,19 +446,15 @@ export default {
             }
           }
         );
-
-
       } catch (error) {
-
         console.error(
-          "Erreur contrôle invitation",
+          "Erreur contr\xF4le invitation",
           error
         );
-
         return new Response(
           pageMessage(
             "Erreur",
-            "Impossible de vérifier l'invitation."
+            "Impossible de v\xE9rifier l'invitation."
           ),
           {
             status: 500,
@@ -516,74 +463,34 @@ export default {
             }
           }
         );
-
       }
-
     }
-
-
-    // --------------------------------------------------
-    // RÉCEPTION DE LA CONTRIBUTION
-    // --------------------------------------------------
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/contribuer"
-    ) {
-
+    if (request.method === "POST" && url.pathname === "/contribuer") {
       try {
-
-        const form =
-          await request.formData();
-
-
-        const token =
-          String(form.get("token") || "").trim();
-
-        const prenom =
-          String(form.get("prenom") || "").trim();
-
-        const nom =
-          String(form.get("nom") || "").trim();
-
-        const dateNaissance =
-          String(
-            form.get("date_naissance") || ""
-          ).trim();
-
-        const lieuNaissance =
-          String(
-            form.get("lieu_naissance") || ""
-          ).trim();
-
-        const telephone =
-          String(
-            form.get("telephone") || ""
-          ).trim();
-
-        const email =
-          String(
-            form.get("email") || ""
-          ).trim();
-
-        const commentaire =
-          String(
-            form.get("commentaire") || ""
-          ).trim();
-
-
-        // Vérification du token une deuxième fois
-        // au moment de l'envoi.
-
-        const valide =
-          await invitationValide(env, token);
-
-
+        const form = await request.formData();
+        const token = String(form.get("token") || "").trim();
+        const prenom = String(form.get("prenom") || "").trim();
+        const nom = String(form.get("nom") || "").trim();
+        const dateNaissance = String(
+          form.get("date_naissance") || ""
+        ).trim();
+        const lieuNaissance = String(
+          form.get("lieu_naissance") || ""
+        ).trim();
+        const telephone = String(
+          form.get("telephone") || ""
+        ).trim();
+        const email = String(
+          form.get("email") || ""
+        ).trim();
+        const commentaire = String(
+          form.get("commentaire") || ""
+        ).trim();
+        const valide = await invitationValide(env, token);
         if (!valide) {
-
           return new Response(
             pageMessage(
-              "⚠️ Invitation invalide",
+              "\u26A0\uFE0F Invitation invalide",
               "Cette invitation n'est plus valable."
             ),
             {
@@ -593,16 +500,12 @@ export default {
               }
             }
           );
-
         }
-
-
         if (!prenom || !nom) {
-
           return new Response(
             pageMessage(
               "Informations manquantes",
-              "Le prénom et le nom sont obligatoires."
+              "Le pr\xE9nom et le nom sont obligatoires."
             ),
             {
               status: 400,
@@ -611,12 +514,8 @@ export default {
               }
             }
           );
-
         }
-
-
-        await env.DB
-          .prepare(`
+        await env.DB.prepare(`
             INSERT INTO contributions (
               invitation_token,
               nom,
@@ -629,25 +528,21 @@ export default {
               status
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `)
-          .bind(
-            token,
-            nom,
-            prenom,
-            dateNaissance,
-            lieuNaissance,
-            telephone,
-            email,
-            commentaire,
-            "pending"
-          )
-          .run();
-
-
+          `).bind(
+          token,
+          nom,
+          prenom,
+          dateNaissance,
+          lieuNaissance,
+          telephone,
+          email,
+          commentaire,
+          "pending"
+        ).run();
         return new Response(
           pageMessage(
-            "✅ Merci",
-            "Votre contribution a bien été transmise. Elle sera contrôlée avant son intégration dans l'arbre familial."
+            "\u2705 Merci",
+            "Votre contribution a bien \xE9t\xE9 transmise. Elle sera contr\xF4l\xE9e avant son int\xE9gration dans l'arbre familial."
           ),
           {
             headers: {
@@ -655,15 +550,11 @@ export default {
             }
           }
         );
-
-
       } catch (error) {
-
         console.error(
           "Erreur contribution",
           error
         );
-
         return new Response(
           pageMessage(
             "Erreur",
@@ -676,12 +567,8 @@ export default {
             }
           }
         );
-
       }
-
     }
-
-
     return new Response(
       "Page introuvable",
       {
@@ -691,7 +578,9 @@ export default {
         }
       }
     );
-
   }
-
 };
+export {
+  index_default as default
+};
+//# sourceMappingURL=index.js.map
