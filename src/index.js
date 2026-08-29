@@ -1,586 +1,188 @@
-var __defProp = Object.defineProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+const json = (value, status = 200) => new Response(JSON.stringify(value), {
+  status,
+  headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*" },
+});
 
-// src/index.js
-function escapeHtml(value) {
-  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+async function addColumnIfMissing(env, table, column, definition) {
+  const info = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
+  const exists = (info.results || []).some((row) => row.name === column);
+  if (!exists) await env.DB.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
-__name(escapeHtml, "escapeHtml");
-function pageMessage(title, message) {
-  return `<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${escapeHtml(title)}</title>
-  <style>
-    body {
-      margin: 0;
-      background: #f3f6fa;
-      font-family: system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
-      color: #172033;
-      padding: 20px;
-    }
 
-    .card {
-      max-width: 600px;
-      margin: 60px auto;
-      background: white;
-      border-radius: 18px;
-      padding: 30px;
-      text-align: center;
-      box-shadow: 0 8px 30px rgba(0,0,0,.08);
-    }
-
-    h1 {
-      color: #245f9e;
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>${escapeHtml(title)}</h1>
-    <p>${escapeHtml(message)}</p>
-  </div>
-</body>
-</html>`;
-}
-__name(pageMessage, "pageMessage");
-function pageForm(token) {
-  const safeToken = escapeHtml(token);
-  return `<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1,viewport-fit=cover"
-  >
-
-  <title>Contribution familiale</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      background: #f3f6fa;
-      color: #172033;
-      font-family: system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
-    }
-
-    .wrap {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 12px;
-    }
-
-    .hero {
-      background: linear-gradient(135deg,#183e66,#2b6da9);
-      color: white;
-      border-radius: 18px;
-      padding: 20px;
-      margin-bottom: 14px;
-    }
-
-    .hero h1 {
-      margin: 0 0 7px;
-      font-size: 24px;
-    }
-
-    .hero p {
-      margin: 0;
-      line-height: 1.5;
-      opacity: .94;
-    }
-
-    .card {
-      background: white;
-      border: 1px solid #dce4ee;
-      border-radius: 16px;
-      padding: 16px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .full {
-      grid-column: 1 / -1;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 650;
-      margin-bottom: 5px;
-    }
-
-    input,
-    textarea {
-      width: 100%;
-      min-height: 46px;
-      border: 1px solid #cbd6e3;
-      border-radius: 11px;
-      padding: 10px 11px;
-      font-size: 16px;
-      background: white;
-    }
-
-    textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-
-    button {
-      width: 100%;
-      margin-top: 16px;
-      border: 0;
-      border-radius: 11px;
-      padding: 14px;
-      background: #245f9e;
-      color: white;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .note {
-      margin-top: 14px;
-      color: #65758b;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    @media (max-width: 600px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      .full {
-        grid-column: auto;
-      }
-
-      .wrap {
-        padding: 8px;
-      }
-
-      .hero {
-        border-radius: 14px;
-      }
-    }
-  </style>
-</head>
-
-<body>
-
-  <div class="wrap">
-
-    <div class="hero">
-      <h1>\u{1F46A} Contribution familiale</h1>
-
-      <p>
-        Merci de renseigner les informations que vous connaissez.
-        Elles seront contr\xF4l\xE9es avant leur int\xE9gration
-        dans l'arbre familial.
-      </p>
-    </div>
-
-    <div class="card">
-
-      <form method="post" action="/contribuer">
-
-        <input
-          type="hidden"
-          name="token"
-          value="${safeToken}"
-        >
-
-        <div class="grid">
-
-          <div>
-            <label>Pr\xE9nom *</label>
-            <input
-              name="prenom"
-              required
-              autocomplete="given-name"
-            >
-          </div>
-
-          <div>
-            <label>Nom *</label>
-            <input
-              name="nom"
-              required
-              autocomplete="family-name"
-            >
-          </div>
-
-          <div>
-            <label>Date de naissance</label>
-            <input
-              type="date"
-              name="date_naissance"
-            >
-          </div>
-
-          <div>
-            <label>Lieu de naissance</label>
-            <input name="lieu_naissance">
-          </div>
-
-          <div>
-            <label>T\xE9l\xE9phone</label>
-            <input
-              type="tel"
-              name="telephone"
-              autocomplete="tel"
-            >
-          </div>
-
-          <div>
-            <label>E-mail</label>
-            <input
-              type="email"
-              name="email"
-              autocomplete="email"
-            >
-          </div>
-
-          <div class="full">
-            <label>Informations compl\xE9mentaires</label>
-
-            <textarea
-              name="commentaire"
-              placeholder="Profession, conjoint, enfants, ville, informations familiales..."
-            ></textarea>
-          </div>
-
-        </div>
-
-        <button type="submit">
-          \u{1F4E8} Envoyer ma contribution
-        </button>
-
-      </form>
-
-      <div class="note">
-        Les informations envoy\xE9es sont plac\xE9es en attente
-        de v\xE9rification. Elles ne sont pas ajout\xE9es
-        automatiquement \xE0 l'arbre familial.
-      </div>
-
-    </div>
-  </div>
-
-</body>
-</html>`;
-}
-__name(pageForm, "pageForm");
-async function invitationValide(env, token) {
-  if (!token) {
-    return false;
-  }
-  const result = await env.DB.prepare(`
-      SELECT id
-      FROM invitations
-      WHERE token = ?
-        AND status = 'active'
-        AND (
-          expires_at IS NULL
-          OR datetime(expires_at) > datetime('now')
-        )
-      LIMIT 1
-    `).bind(token).first();
-  return Boolean(result);
-}
-__name(invitationValide, "invitationValide");
-function genererTokenInvitation() {
-  const bytes = new Uint8Array(24);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-__name(genererTokenInvitation, "genererTokenInvitation");
-var index_default = {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    // Diagnostic temporaire : ne révèle jamais la valeur du secret.
-    if (url.pathname === "/admin/key-diagnostic") {
-      const received = String(
-        request.headers.get("X-MNG-Admin-Key") || ""
-      );
-      const stored = String(env.MNG_ADMIN_KEY || "");
-
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          secret_present: stored.length > 0,
-          secret_length: stored.length,
-          header_present: received.length > 0,
-          header_length: received.length,
-          keys_equal: received === stored
-        }),
-        {
-          status: 200,
-          headers: {
-            "content-type": "application/json; charset=UTF-8"
-          }
-        }
-      );
-    }
-
-    if (request.method === "POST" && url.pathname === "/admin/invitations") {
-      const adminKey = String(
-        request.headers.get("X-MNG-Admin-Key") || ""
-      );
-     
-      if (!env.MNG_ADMIN_KEY || adminKey !== env.MNG_ADMIN_KEY) {
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error: "Acc\xE8s administrateur refus\xE9"
-          }),
-          {
-            status: 403,
-            headers: {
-              "content-type": "application/json; charset=UTF-8"
-            }
-          }
-        );
-      }
-      try {
-        const token = genererTokenInvitation();
-        await env.DB.prepare(`
-            INSERT INTO invitations (
-              token,
-              expires_at,
-              status
-            )
-            VALUES (
-              ?,
-              datetime('now', '+7 days'),
-              'active'
-            )
-          `).bind(token).run();
-        const inviteUrl = `${url.origin}/?token=${encodeURIComponent(token)}`;
-        return new Response(
-          JSON.stringify(
-            {
-              ok: true,
-              token,
-              expires_in_days: 7,
-              invite_url: inviteUrl
-            },
-            null,
-            2
-          ),
-          {
-            status: 201,
-            headers: {
-              "content-type": "application/json; charset=UTF-8"
-            }
-          }
-        );
-      } catch (error) {
-        console.error(
-          "Erreur cr\xE9ation invitation",
-          error
-        );
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error: "Impossible de cr\xE9er l'invitation"
-          }),
-          {
-            status: 500,
-            headers: {
-              "content-type": "application/json; charset=UTF-8"
-            }
-          }
-        );
-      }
-    }
-    if (request.method === "GET" && url.pathname === "/") {
-      const token = String(url.searchParams.get("token") || "").trim();
-      if (!token) {
-        return new Response(
-          pageMessage(
-            "\u{1F512} Invitation requise",
-            "Vous devez utiliser le lien d'invitation qui vous a \xE9t\xE9 transmis."
-          ),
-          {
-            status: 403,
-            headers: {
-              "content-type": "text/html; charset=UTF-8"
-            }
-          }
-        );
-      }
-      try {
-        const valide = await invitationValide(env, token);
-        if (!valide) {
-          return new Response(
-            pageMessage(
-              "\u26A0\uFE0F Invitation invalide",
-              "Cette invitation est inconnue, expir\xE9e ou d\xE9sactiv\xE9e."
-            ),
-            {
-              status: 403,
-              headers: {
-                "content-type": "text/html; charset=UTF-8"
-              }
-            }
-          );
-        }
-        return new Response(
-          pageForm(token),
-          {
-            headers: {
-              "content-type": "text/html; charset=UTF-8"
-            }
-          }
-        );
-      } catch (error) {
-        console.error(
-          "Erreur contr\xF4le invitation",
-          error
-        );
-        return new Response(
-          pageMessage(
-            "Erreur",
-            "Impossible de v\xE9rifier l'invitation."
-          ),
-          {
-            status: 500,
-            headers: {
-              "content-type": "text/html; charset=UTF-8"
-            }
-          }
-        );
-      }
-    }
-    if (request.method === "POST" && url.pathname === "/contribuer") {
-      try {
-        const form = await request.formData();
-        const token = String(form.get("token") || "").trim();
-        const prenom = String(form.get("prenom") || "").trim();
-        const nom = String(form.get("nom") || "").trim();
-        const dateNaissance = String(
-          form.get("date_naissance") || ""
-        ).trim();
-        const lieuNaissance = String(
-          form.get("lieu_naissance") || ""
-        ).trim();
-        const telephone = String(
-          form.get("telephone") || ""
-        ).trim();
-        const email = String(
-          form.get("email") || ""
-        ).trim();
-        const commentaire = String(
-          form.get("commentaire") || ""
-        ).trim();
-        const valide = await invitationValide(env, token);
-        if (!valide) {
-          return new Response(
-            pageMessage(
-              "\u26A0\uFE0F Invitation invalide",
-              "Cette invitation n'est plus valable."
-            ),
-            {
-              status: 403,
-              headers: {
-                "content-type": "text/html; charset=UTF-8"
-              }
-            }
-          );
-        }
-        if (!prenom || !nom) {
-          return new Response(
-            pageMessage(
-              "Informations manquantes",
-              "Le pr\xE9nom et le nom sont obligatoires."
-            ),
-            {
-              status: 400,
-              headers: {
-                "content-type": "text/html; charset=UTF-8"
-              }
-            }
-          );
-        }
-        await env.DB.prepare(`
-            INSERT INTO contributions (
-              invitation_token,
-              nom,
-              prenom,
-              date_naissance,
-              lieu_naissance,
-              telephone,
-              email,
-              commentaire,
-              status
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(
-          token,
-          nom,
-          prenom,
-          dateNaissance,
-          lieuNaissance,
-          telephone,
-          email,
-          commentaire,
-          "pending"
-        ).run();
-        return new Response(
-          pageMessage(
-            "\u2705 Merci",
-            "Votre contribution a bien \xE9t\xE9 transmise. Elle sera contr\xF4l\xE9e avant son int\xE9gration dans l'arbre familial."
-          ),
-          {
-            headers: {
-              "content-type": "text/html; charset=UTF-8"
-            }
-          }
-        );
-      } catch (error) {
-        console.error(
-          "Erreur contribution",
-          error
-        );
-        return new Response(
-          pageMessage(
-            "Erreur",
-            "Une erreur est survenue lors de l'enregistrement."
-          ),
-          {
-            status: 500,
-            headers: {
-              "content-type": "text/html; charset=UTF-8"
-            }
-          }
-        );
-      }
-    }
-    return new Response(
-      "Page introuvable",
-      {
-        status: 404,
-        headers: {
-          "content-type": "text/plain; charset=UTF-8"
-        }
-      }
+async function schema(env) {
+  await env.DB.exec(`
+    CREATE TABLE IF NOT EXISTS invitations (
+      token TEXT PRIMARY KEY,
+      branch TEXT NOT NULL DEFAULT '',
+      expires_at TEXT NOT NULL DEFAULT '',
+      members TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS contributions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token TEXT NOT NULL,
+      branch TEXT NOT NULL DEFAULT '',
+      contributor TEXT,
+      payload TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT
+    );
+  `);
+
+  await addColumnIfMissing(env, "invitations", "branch", "TEXT NOT NULL DEFAULT ''");
+  await addColumnIfMissing(env, "invitations", "expires_at", "TEXT NOT NULL DEFAULT ''");
+  await addColumnIfMissing(env, "invitations", "members", "TEXT NOT NULL DEFAULT '[]'");
+  await addColumnIfMissing(env, "invitations", "created_at", "TEXT");
+
+  await addColumnIfMissing(env, "contributions", "token", "TEXT NOT NULL DEFAULT ''");
+  await addColumnIfMissing(env, "contributions", "branch", "TEXT NOT NULL DEFAULT ''");
+  await addColumnIfMissing(env, "contributions", "contributor", "TEXT");
+  await addColumnIfMissing(env, "contributions", "payload", "TEXT NOT NULL DEFAULT '{}'");
+  await addColumnIfMissing(env, "contributions", "status", "TEXT NOT NULL DEFAULT 'pending'");
+  await addColumnIfMissing(env, "contributions", "created_at", "TEXT");
+  await addColumnIfMissing(env, "contributions", "updated_at", "TEXT");
+}
+
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+}[char]));
+
+const normalizedSex = (value) => String(value || "").trim().toLocaleLowerCase("fr").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const isMale = (member) => ["homme","h","m","male","masculin","ذكر","رجل"].includes(normalizedSex(member.sexe));
+const isFemale = (member) => ["femme","f","female","feminin","أنثى","امراة"].includes(normalizedSex(member.sexe));
+
+function invitationForm(invitation) {
+  let members = [];
+  try { members = JSON.parse(invitation.members || "[]"); } catch (_) {}
+
+  const options = (filter) => '<option value="">— Choisir —</option><option value="__new__">Personne absente de la liste / Ajouter une nouvelle personne</option>'
+    + members.filter(filter).map((member) => `<option value="${escapeHtml(member.id)}">${escapeHtml(`${member.prenom || ""} ${member.nom || ""}`.trim())}</option>`).join("");
+
+  const all = options(() => true), father = options(isMale), mother = options(isFemale);
+
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Contribution familiale</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#f2f6fb;color:#172033;font:16px system-ui}.wrap{max-width:680px;margin:auto;padding:16px}h1{font-size:1.55rem}.branch{background:#e8f2ff;border:1px solid #98bce8;padding:14px;border-radius:12px;margin-bottom:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:flex;flex-direction:column;gap:5px;font-weight:650}input,select,textarea,button{width:100%;font:inherit;padding:12px;border:1px solid #aab8ca;border-radius:9px;background:white}textarea{min-height:95px}select[multiple]{min-height:150px}.wide{grid-column:1/-1}.new-person{grid-column:1/-1;padding:12px;border:1px dashed #1769aa;border-radius:10px;background:#f8fbff}.secondary{background:#e8f2ff;color:#174f7d;margin-top:8px}.remove{background:#9b2c2c;color:white}.hint{font-size:.85rem;color:#506174}#result{padding:12px}@media(max-width:560px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}</style></head><body><main class="wrap">
+<h1>Contribution MNG e-Familia</h1><div class="branch"><b>Branche familiale</b><br>${escapeHtml(invitation.branch)}<div class="hint">Cette branche est définie par l’invitation et ne peut pas être modifiée.</div></div>
+<form id="family-form"><div class="grid">
+<label>Prénom<input name="prenom" required></label><label>Nom<input name="nom" required></label>
+<label>Prénom arabe<input name="prenom_ar" dir="rtl"></label><label>Nom arabe<input name="nom_ar" dir="rtl"></label>
+<label>Sexe<select name="sexe"><option></option><option>Homme</option><option>Femme</option></select></label><label>Date de naissance<input type="date" name="naissance"></label>
+<label class="wide">Lieu de naissance<input name="lieu_naissance"></label>
+<label>Statut<select name="statut_vital"><option value="vivant">Vivant(e)</option><option value="decede">Décédé(e)</option></select></label><label>Date de décès<input type="date" name="deces"></label>
+<label>État civil<select name="etat_civil"><option></option><option>Célibataire</option><option>Marié(e)</option><option>Divorcé(e)</option><option>Veuf/Veuve</option></select></label>
+<label>Téléphone<input type="tel" name="gsm"></label><label>E-mail<input type="email" name="email"></label>
+<label>Ville<input name="ville"></label><label>Ville arabe<input name="ville_ar" dir="rtl"></label><label>Pays<input name="pays"></label><label>Pays arabe<input name="pays_ar" dir="rtl"></label>
+<label>Profession<input name="profession"></label><label>Profession arabe<input name="profession_ar" dir="rtl"></label><label>Nationalité(s)<input name="nationalites"></label>
+<label>Université<input name="universite"></label><label>Université arabe<input name="universite_ar" dir="rtl"></label><label>Organisme<input name="organisme"></label><label>Organisme arabe<input name="organisme_ar" dir="rtl"></label>
+<label class="wide">Notes<textarea name="notes"></textarea></label><label class="wide">Notes arabes<textarea name="notes_ar" dir="rtl"></textarea></label>
+<label>Père<select id="father-select" name="pere_id" onchange="toggleNewPerson('father',this.value)">${father}</select></label>
+<label>Mère<select id="mother-select" name="mere_id" onchange="toggleNewPerson('mother',this.value)">${mother}</select></label>
+<div id="new-father" class="new-person" hidden><b>Nouveau père</b><div class="grid"><label>Prénom<input data-field="prenom"></label><label>Nom<input data-field="nom"></label><label>Sexe<select data-field="sexe"><option value="Homme">Homme</option><option value="Masculin">Masculin</option></select></label></div></div>
+<div id="new-mother" class="new-person" hidden><b>Nouvelle mère</b><div class="grid"><label>Prénom<input data-field="prenom"></label><label>Nom<input data-field="nom"></label><label>Sexe<select data-field="sexe"><option value="Femme">Femme</option><option value="Féminin">Féminin</option></select></label></div></div>
+<label class="wide">Conjoint(s)<select id="spouse-select" name="conjoint_ids" multiple onchange="spouseSelectionChanged(this)">${all}</select><span class="hint">Plusieurs personnes existantes peuvent être choisies.</span><button class="secondary" type="button" onclick="addNewSpouse()">＋ Ajouter un nouveau conjoint</button></label>
+<div id="new-spouses" class="wide"></div>
+<label class="wide">Statut du conjoint<select name="statut_conjoint"><option>Marié(e)</option><option>Divorcé(e)</option><option>Veuf/Veuve</option></select></label>
+<label class="wide">Votre nom (contributeur)<input name="contributor"></label></div><button type="submit">Envoyer la contribution</button></form><div id="result"></div></main>
+<script>
+const temporaryId=(prefix)=>prefix+'-'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
+function toggleNewPerson(role,value){document.getElementById('new-'+role).hidden=value!=='__new__'}
+function readNewPerson(block,sourceId){const person={source_id:sourceId};block.querySelectorAll('[data-field]').forEach(input=>person[input.dataset.field]=input.value.trim());if(!person.prenom&&!person.nom)throw new Error('Saisissez au moins le prénom ou le nom de chaque nouvelle personne.');return person}
+function addNewSpouse(){const sourceId=temporaryId('spouse'),block=document.createElement('div');block.className='new-person';block.dataset.sourceId=sourceId;block.innerHTML='<b>Nouveau conjoint</b><div class="grid"><label>Prénom<input data-field="prenom"></label><label>Nom<input data-field="nom"></label><label>Sexe<select data-field="sexe"><option value="Homme">Homme</option><option value="Femme">Femme</option><option value="Masculin">Masculin</option><option value="Féminin">Féminin</option></select></label></div><button class="remove" type="button">Retirer cette personne</button>';block.querySelector('.remove').onclick=()=>block.remove();document.getElementById('new-spouses').appendChild(block)}
+function spouseSelectionChanged(select){const add=[...select.options].some(option=>option.value==='__new__'&&option.selected);if(add){[...select.options].forEach(option=>{if(option.value==='__new__')option.selected=false});addNewSpouse()}}
+document.getElementById('family-form').addEventListener('submit',async(e)=>{e.preventDefault();const f=new FormData(e.target),member={source_id:temporaryId('member')},newMembers=[];for(const [k,v] of f.entries()){if(k!=='conjoint_ids'&&k!=='contributor'&&k!=='pere_id'&&k!=='mere_id')member[k]=v}const father=f.get('pere_id');if(father==='__new__'){const id=temporaryId('father');newMembers.push(readNewPerson(document.getElementById('new-father'),id));member.pere_id=id}else if(father)member.pere_id=father;const mother=f.get('mere_id');if(mother==='__new__'){const id=temporaryId('mother');newMembers.push(readNewPerson(document.getElementById('new-mother'),id));member.mere_id=id}else if(mother)member.mere_id=mother;member.conjoint_ids=f.getAll('conjoint_ids').filter(value=>value&&value!=='__new__');document.querySelectorAll('#new-spouses .new-person').forEach(block=>{newMembers.push(readNewPerson(block,block.dataset.sourceId));member.conjoint_ids.push(block.dataset.sourceId)});member.est_decede=member.statut_vital==='decede'?1:0;delete member.statut_vital;const out=document.getElementById('result');out.textContent='Envoi…';try{const r=await fetch(location.pathname+'/contributions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({contributor:f.get('contributor')||'',payload:{members:[member,...newMembers]}})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Erreur');e.target.hidden=true;out.textContent='✅ Contribution envoyée. Elle sera intégrée uniquement après validation.'}catch(err){out.textContent='❌ '+err.message}});
+</script></body></html>`;
+}
+
+function authorized(request, env) {
+  return Boolean(env.MNG_ADMIN_KEY) && request.headers.get("X-MNG-Admin-Key") === env.MNG_ADMIN_KEY;
+}
+
+async function body(request) {
+  try { return await request.json(); } catch (_) { throw new Error("Corps JSON invalide."); }
+}
+
+function token() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return [...bytes].map((n) => n.toString(16).padStart(2, "0")).join("");
+}
+
+export default {
+  async fetch(request, env) {
+    if (request.method === "OPTIONS") return new Response(null, { headers: {
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "X-MNG-Admin-Key,content-type",
+      "access-control-allow-methods": "GET,POST,PATCH,OPTIONS"
+    }});
+
+    try {
+      await schema(env);
+      const url = new URL(request.url);
+      const path = url.pathname;
+
+      if (path === "/admin/ping" && request.method === "GET") {
+        if (!authorized(request, env)) return json({ error: "Non autorisé." }, 401);
+        return json({ ok: true, service: "MNG e-Familia contributions" });
+      }
+
+      if (path === "/admin/invitations" && request.method === "POST") {
+        if (!authorized(request, env)) return json({ error: "Non autorisé." }, 401);
+        const input = await body(request);
+        const branch = String(input.branch || "").trim();
+        if (!branch) return json({ error: "Branche requise." }, 400);
+        const members = Array.isArray(input.members) ? input.members.map((member) => ({
+          id: member.id, prenom: String(member.prenom || ""), nom: String(member.nom || ""), sexe: String(member.sexe || "")
+        })) : [];
+        const days = Math.max(1, Math.min(90, Number(input.expires_in_days) || 7));
+        const inviteToken = token();
+        const expiresAt = new Date(Date.now() + days * 86400000).toISOString();
+        await env.DB.prepare("INSERT INTO invitations(token, branch, expires_at, members) VALUES(?,?,?,?)")
+          .bind(inviteToken, branch, expiresAt, JSON.stringify(members)).run();
+        return json({ token: inviteToken, branch, expires_at: expiresAt, url: `${url.origin}/invite/${inviteToken}` }, 201);
+      }
+
+      const invite = path.match(/^\/invite\/([^/]+)$/);
+      if (invite && request.method === "GET") {
+        const row = await env.DB.prepare("SELECT token, branch, expires_at, members FROM invitations WHERE token=?").bind(invite[1]).first();
+        if (!row || !row.expires_at || Date.parse(row.expires_at) <= Date.now()) return json({ error: "Invitation invalide ou expirée." }, 404);
+        return new Response(invitationForm(row), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      }
+
+      const submit = path.match(/^\/invite\/([^/]+)\/contributions$/);
+      if (submit && request.method === "POST") {
+        const row = await env.DB.prepare("SELECT branch, expires_at FROM invitations WHERE token=?").bind(submit[1]).first();
+        if (!row || !row.expires_at || Date.parse(row.expires_at) <= Date.now()) return json({ error: "Invitation invalide ou expirée." }, 404);
+        const input = await body(request);
+        if (!input.payload || typeof input.payload !== "object") return json({ error: "Contribution invalide." }, 400);
+        const result = await env.DB.prepare("INSERT INTO contributions(token,branch,contributor,payload) VALUES(?,?,?,?)")
+          .bind(submit[1], row.branch, String(input.contributor || ""), JSON.stringify(input.payload)).run();
+        return json({ ok: true, id: result.meta.last_row_id, status: "pending" }, 201);
+      }
+
+      if (path === "/admin/contributions" && request.method === "GET") {
+        if (!authorized(request, env)) return json({ error: "Non autorisé." }, 401);
+        const result = await env.DB.prepare("SELECT * FROM contributions ORDER BY created_at DESC").all();
+        return json({ contributions: (result.results || []).map((row) => {
+          let payload = {};
+          try { payload = JSON.parse(row.payload || "{}"); } catch (_) {}
+          return { ...row, payload };
+        })});
+      }
+
+      const update = path.match(/^\/admin\/contributions\/(\d+)$/);
+      if (update && request.method === "PATCH") {
+        if (!authorized(request, env)) return json({ error: "Non autorisé." }, 401);
+        const input = await body(request);
+        if (!["accepted", "rejected"].includes(input.status)) return json({ error: "Statut invalide." }, 400);
+        const result = await env.DB.prepare("UPDATE contributions SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'")
+          .bind(input.status, update[1]).run();
+        if (!result.meta.changes) return json({ error: "Contribution absente ou déjà traitée." }, 409);
+        return json({ ok: true, id: Number(update[1]), status: input.status });
+      }
+
+      return json({ error: "Route introuvable." }, 404);
+    } catch (error) {
+      return json({ error: error && error.message ? error.message : "Erreur interne Cloudflare." }, 500);
+    }
   }
 };
-export {
-  index_default as default
-};
-//# sourceMappingURL=index.js.map
