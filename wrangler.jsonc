@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "contribuion-familia",
-  "main": "src/index_compat.js",
+  "main": "src/worker_compat_v186.js",
   "compatibility_date": "2026-08-16",
 
   "d1_databases": [
