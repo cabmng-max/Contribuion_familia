@@ -6,29 +6,28 @@ const json = (value, status = 200) => new Response(JSON.stringify(value), {
 async function addColumnIfMissing(env, table, column, definition) {
   const info = await env.DB.prepare(`PRAGMA table_info(${table})`).all();
   const exists = (info.results || []).some((row) => row.name === column);
-  if (!exists) await env.DB.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  if (!exists) await env.DB.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
 }
 
 async function schema(env) {
-  await env.DB.exec(`
-    CREATE TABLE IF NOT EXISTS invitations (
-      token TEXT PRIMARY KEY,
-      branch TEXT NOT NULL DEFAULT '',
-      expires_at TEXT NOT NULL DEFAULT '',
-      members TEXT NOT NULL DEFAULT '[]',
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS contributions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      token TEXT NOT NULL,
-      branch TEXT NOT NULL DEFAULT '',
-      contributor TEXT,
-      payload TEXT NOT NULL DEFAULT '{}',
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT
-    );
-  `);
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS invitations (
+    token TEXT PRIMARY KEY,
+    branch TEXT NOT NULL DEFAULT '',
+    expires_at TEXT NOT NULL DEFAULT '',
+    members TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )`).run();
+
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS contributions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token TEXT NOT NULL,
+    branch TEXT NOT NULL DEFAULT '',
+    contributor TEXT,
+    payload TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT
+  )`).run();
 
   await addColumnIfMissing(env, "invitations", "branch", "TEXT NOT NULL DEFAULT ''");
   await addColumnIfMissing(env, "invitations", "expires_at", "TEXT NOT NULL DEFAULT ''");
