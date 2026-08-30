@@ -47,7 +47,7 @@ function legacyValue(column, ctx) {
   return "";
 }
 
-async function saveCompatibleContribution(env, inviteToken, branch, input) {
+export async function saveCompatibleContribution(env, inviteToken, branch, input) {
   const payload = input.payload;
   const contributor = String(input.contributor || "");
   const member = firstMember(payload);
