@@ -1,0 +1,8 @@
+{
+  "name": "contribution-familia-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
