@@ -22,6 +22,26 @@ test("the public form offers five languages, Arabic RTL, and in-place translatio
   assert.doesNotMatch(html, /MNG_ADMIN_KEY/);
 });
 
+test("spouses use removable single-line selectors and preserve the payload shape", () => {
+  const html = invitationForm({
+    branch: "Branche A",
+    members: JSON.stringify([{ id: "member-1", prenom: "Lina", nom: "Durand", sexe: "Femme" }]),
+  });
+
+  assert.match(html, /id="spouse-select" name="conjoint_ids" onchange=/);
+  assert.doesNotMatch(html, /name="conjoint_ids" multiple/);
+  assert.match(html, /function addSpouseSelector\(\)/);
+  assert.match(html, /row\.querySelector\('\.remove'\)\.onclick=\(\)=>\{row\.remove\(\);renumberSpouses\(\)\}/);
+  assert.match(html, /select\.value==='__new__'/);
+  assert.match(html, /member\.conjoint_ids=\[\]/);
+  assert.match(html, /member\.conjoint_ids\.push\(select\.value\)/);
+  assert.match(html, /data-i18n-number/);
+  assert.match(html, /t\('spouseNumber'\)\.replace/);
+  for (const label of ["Conjoint {number}", "الزوج/الزوجة {number}", "Spouse {number}", "Cónyuge {number}", "Eş {number}"]) {
+    assert.match(html, new RegExp(label.replace(/[{}]/g, "\\$&")));
+  }
+});
+
 test("compatible insert fills new and arbitrary historical NOT NULL columns", async () => {
   const columns = [
     { name: "id", type: "INTEGER", pk: 1, notnull: 1, dflt_value: null },
